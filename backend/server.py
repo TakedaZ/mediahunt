@@ -169,6 +169,28 @@ async def search_custom_source(src: dict[str, Any], query: str, limit: int) -> l
     for i,e in enumerate(feed.entries[:limit]): out.append(TorrentResult(id=f"custom-{src.get('name','src')}-{i}", title=e.get("title",""), source=src.get("name","Custom"), seeders=0, leechers=0, torrent_url=e.get("link")))
     return out
 
+
+async def run_source_with_fallback_queries(
+    source_runner,
+    queries: list[str],
+    source_name: str,
+) -> tuple[list[TorrentResult], Optional[str]]:
+    """Try expanded queries for one source, stopping after first non-empty result.
+
+    Keeps at most one warning per source to avoid duplicated UI messages.
+    """
+    last_warning: Optional[str] = None
+    for q in queries:
+        try:
+            results = await source_runner(q)
+            if results:
+                return results, None
+        except Exception as exc:
+            last_warning = str(exc)
+    if last_warning:
+        return [], last_warning
+    return [], None
+
 @api_router.get("/settings", response_model=SettingsModel)
 async def get_settings_endpoint(): return SettingsModel(**(await load_settings()))
 @api_router.post("/settings", response_model=SettingsModel)
@@ -178,23 +200,43 @@ async def update_settings_endpoint(payload: SettingsModel): return SettingsModel
 async def search_torrents(query:str=Query(...), type:str="any", language:str="any", quality:str="any", max_results:int=20):
     cfg = await load_settings(); warnings=[]
     expanded = expand_query(query, cfg.get("search_preferences", {}).get("aliases", {}))
+    expanded = list(dict.fromkeys([q for q in expanded if q.strip()]))
     sources = cfg.get("sources", {})
     enabled = [(n,c) for n,c in sources.items() if c.get("enabled")]
     enabled.sort(key=lambda x: x[1].get("priority",99))
-    tasks=[]; names=[]
-    for n,_ in enabled:
-        for q in expanded:
-            if n=="yts": tasks.append(search_yts(q, quality, max_results)); names.append((n,q))
-            if n=="nyaa": tasks.append(search_nyaa(q, max_results)); names.append((n,q))
-            if n=="1337x": tasks.append(search_1337x(q, max_results)); names.append((n,q))
-    for cs in cfg.get("custom_sources", []):
-        if cs.get("enabled"):
-            for q in expanded: tasks.append(search_custom_source(cs,q,max_results)); names.append((cs.get("name","Custom"),q))
-    gathered = await asyncio.gather(*tasks, return_exceptions=True)
     results=[]
-    for idx,g in enumerate(gathered):
-        if isinstance(g, Exception): warnings.append(str(g)); continue
-        results.extend(g)
+    for n, _ in enabled:
+        if n == "yts":
+            src_results, warning = await run_source_with_fallback_queries(
+                lambda q: search_yts(q, quality, max_results), expanded, "YTS"
+            )
+        elif n == "nyaa":
+            src_results, warning = await run_source_with_fallback_queries(
+                lambda q: search_nyaa(q, max_results), expanded, "Nyaa"
+            )
+        elif n == "1337x":
+            src_results, warning = await run_source_with_fallback_queries(
+                lambda q: search_1337x(q, max_results), expanded, "1337x"
+            )
+        else:
+            src_results, warning = [], None
+        results.extend(src_results)
+        if warning:
+            warnings.append(warning)
+
+    for cs in cfg.get("custom_sources", []):
+        if not cs.get("enabled"):
+            continue
+        src_results, warning = await run_source_with_fallback_queries(
+            lambda q: search_custom_source(cs, q, max_results),
+            expanded,
+            cs.get("name", "Fonte customizada"),
+        )
+        results.extend(src_results)
+        if warning:
+            warnings.append(warning)
+
+    warnings = list(dict.fromkeys([w.strip() for w in warnings if isinstance(w, str) and w.strip()]))
     deduped = dedupe_results(results)
     prio={k:v.get("priority",99) for k,v in sources.items()}
     deduped.sort(key=lambda r: score_result(r, expanded, quality, prio.get(r.source.lower(),50)), reverse=True)
