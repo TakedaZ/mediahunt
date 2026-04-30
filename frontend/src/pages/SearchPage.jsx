@@ -27,6 +27,7 @@ const SearchPage = () => {
   const [maxResults, setMaxResults] = useState(20);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
+  const [warnings, setWarnings] = useState([]);
   const [searched, setSearched] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
   const [subPrefill, setSubPrefill] = useState(null);
@@ -49,9 +50,11 @@ const SearchPage = () => {
         params: { query, type, language, quality, max_results: maxResults },
       });
       setResults(r.data.results || []);
+      setWarnings(r.data.warnings || []);
     } catch (e) {
       toast.error(e?.response?.data?.detail || e.message);
       setResults([]);
+      setWarnings([]);
     } finally {
       setLoading(false);
     }
@@ -168,6 +171,15 @@ const SearchPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Warnings */}
+      {warnings.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {warnings.map((w, i) => (
+            <div key={i} className="rounded-lg border border-amber-600/40 bg-amber-500/10 px-3 py-2 text-amber-200 text-sm">{w}</div>
+          ))}
+        </div>
+      )}
 
       {/* Results */}
       {loading ? (
