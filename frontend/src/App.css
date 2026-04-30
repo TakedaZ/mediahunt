@@ -1,0 +1,13 @@
+.App {
+    min-height: 100vh;
+    background: radial-gradient(
+            ellipse at top,
+            rgba(245, 158, 11, 0.05) 0%,
+            transparent 50%
+        ),
+        #0b0f19;
+}
+
+.App.light {
+    background: #f8fafc;
+}

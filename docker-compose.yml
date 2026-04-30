@@ -1,0 +1,37 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: mediahunt-mongo
+    restart: unless-stopped
+    volumes:
+      - mediahunt_mongo:/data/db
+    networks:
+      - mediahunt
+
+  mediahunt:
+    build: .
+    container_name: mediahunt
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5556}:5556"
+    environment:
+      PORT: "5556"
+      MONGO_URL: "mongodb://mongo:27017"
+      DB_NAME: "${DB_NAME:-mediahunt}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-*}"
+      OPENSUBTITLES_API_KEY: "${OPENSUBTITLES_API_KEY:-}"
+      MEDIAHUNT_DATA_DIR: "/app/data"
+    volumes:
+      - mediahunt_data:/app/data
+    depends_on:
+      - mongo
+    networks:
+      - mediahunt
+
+volumes:
+  mediahunt_data:
+  mediahunt_mongo:
+
+networks:
+  mediahunt:
+    driver: bridge

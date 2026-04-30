@@ -1,0 +1,128 @@
+{
+  "theme_archetype": {
+    "name": "Cinematic Slate & Amber",
+    "theme": "dark",
+    "archetype_base": "Archetype 5 (Jewel & Luxury) + Archetype 4 (Swiss/High-Contrast)",
+    "description": "A highly functional, cinematic aesthetic inspired by Plex and Sonarr. Deep slate backgrounds paired with vibrant amber and emerald highlights ensure clarity while feeling premium and immersive. Avoids standard 'tech' purple/blue."
+  },
+  "typography": {
+    "fonts": {
+      "headings": "Outfit, sans-serif",
+      "body": "Manrope, sans-serif"
+    },
+    "scale": {
+      "h1": "text-4xl sm:text-5xl font-bold tracking-tight",
+      "h2": "text-2xl sm:text-3xl font-semibold tracking-tight",
+      "h3": "text-xl font-medium tracking-tight",
+      "card_title": "text-sm sm:text-base font-medium leading-tight",
+      "body": "text-sm sm:text-base leading-relaxed",
+      "metadata": "text-xs font-medium uppercase tracking-wider"
+    },
+    "installation": "Ensure Google Fonts for 'Outfit' and 'Manrope' are imported."
+  },
+  "color_palette": {
+    "background": {
+      "default": "bg-[#0B0F19]",
+      "surface": "bg-[#111827]",
+      "elevated": "bg-[#1F2937]"
+    },
+    "text": {
+      "primary": "text-slate-100",
+      "secondary": "text-slate-400",
+      "muted": "text-slate-500"
+    },
+    "brand": {
+      "primary": "text-amber-500",
+      "primary_bg": "bg-amber-500",
+      "primary_hover": "hover:bg-amber-400"
+    },
+    "status": {
+      "seeders": "text-emerald-500",
+      "leechers": "text-rose-500",
+      "source_yts": "text-green-400",
+      "source_nyaa": "text-blue-400",
+      "source_1337x": "text-red-400"
+    },
+    "borders": {
+      "default": "border-slate-800",
+      "hover": "hover:border-slate-700"
+    }
+  },
+  "layout_spacing": {
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "grid": {
+      "media_cards": "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6",
+      "settings": "grid grid-cols-1 md:grid-cols-[240px_1fr] gap-8"
+    },
+    "padding": {
+      "section": "py-8 sm:py-12"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-[#0B0F19]/80 border-b border-slate-800",
+    "shadows": {
+      "card": "shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)]",
+      "glow": "shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+    },
+    "borders": "rounded-lg border border-slate-800"
+  },
+  "components_instructions": {
+    "navigation": {
+      "description": "Sticky top navigation bar featuring the MediaHunt logo (Amber accent), search inputs/filters centered, and Settings/Language toggles on the right."
+    },
+    "media_card": {
+      "description": "Container for torrent result. 2:3 aspect ratio. Image covers background.",
+      "states": {
+        "default": "Image visible, gradient overlay at bottom with Title and Year.",
+        "hover": "Dark overlay (bg-black/70) slides in or fades in revealing 'Copy Magnet', 'Download .torrent', and 'Find Subtitles' buttons.",
+        "metadata": "Top-right absolute badge for Quality (e.g., 4K, 1080p). Bottom edge shows Seeders (emerald) / Leechers (rose) and Size."
+      }
+    },
+    "search_filters": {
+      "description": "Horizontal bar below header (or integrated). Dropdowns for: Type (Filme/Série/Anime), Language (Dublado PT-BR/Legendado/Original/Qualquer), Quality. Use Shadcn Select component."
+    },
+    "disclaimer_banner": {
+      "description": "Fixed banner at the very bottom or top of the UI warning about responsible use. Subdued styling (bg-slate-900 border-t border-slate-800 text-slate-400 text-xs) with a dismiss button."
+    },
+    "settings_page": {
+      "description": "Dual-pane layout. Left: Vertical tabs (General, API Keys, Sources, Subtitles). Right: Forms and Toggles.",
+      "toggles": "Use Shadcn Switch for toggling YTS, Nyaa, 1337x. Implement basic drag/drop or up/down arrow buttons next to them to dictate priority."
+    },
+    "subtitle_drawer": {
+      "description": "When clicking 'Find Subtitles' on a card, open a Shadcn Dialog or Sheet. Fetch from OpenSubtitles via backend. Show language badges (PT-BR, EN, etc.) and a 'Download' button."
+    },
+    "loading_skeletons": {
+      "description": "Use Shadcn Skeleton. For cards: rounded-lg bg-slate-800 aspect-[2/3]. Animate pulse."
+    }
+  },
+  "accessibility_and_testing": {
+    "contrast": "Ensure all text, especially over poster images, has sufficient contrast. Use heavy linear-gradients on overlays.",
+    "data_testid": "MANDATORY: All interactive elements must have a data-testid. Examples: data-testid='search-input', data-testid='magnet-button', data-testid='settings-link'."
+  },
+  "icons": {
+    "library": "lucide-react",
+    "usage": "Use icons for Seeders (ArrowUp), Leechers (ArrowDown), Settings (Settings), Magnet (Magnet), Subtitles (MessageSquare), and Sources."
+  },
+  "media": {
+    "images": [
+      {
+        "category": "placeholder_poster",
+        "description": "Fallback cinematic movie poster when API fails to provide one.",
+        "url": "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwxfHxjaW5lbWF0aWMlMjBtb3ZpZSUyMHBvc3RlciUyMHBsYWNlaG9sZGVyfGVufDB8fHx8MTc3NzEzNDI5OHww&ixlib=rb-4.1.0&q=85"
+      },
+      {
+        "category": "empty_state_background",
+        "description": "Abstract tech grid used for the empty search state or welcome banner.",
+        "url": "https://images.unsplash.com/photo-1771873679931-992e80181419?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODR8MHwxfHNlYXJjaHwxfHxjaW5lbWF0aWMlMjBkYXJrJTIwdGVjaCUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzc3MTM0MzAyfDA&ixlib=rb-4.1.0&q=85"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Use standard Tailwind classes as defined in color_palette. Apply bg-[#0B0F19] to the main body.",
+    "Do NOT use pure black or white. Stick to the slate and amber combinations.",
+    "Prioritize Shadcn UI for dropdowns, dialogues, switches, and tabs.",
+    "Ensure the layout is responsive (grid changes from 2 cols on mobile to 6 on extra-large screens).",
+    "Include the data-testid attributes extensively as per requirements.",
+    "Respect the PT-BR default language requirement."
+  ]
+}

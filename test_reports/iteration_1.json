@@ -1,0 +1,36 @@
+{
+  "summary": "Backend-only test of MediaHunt FastAPI. Ran pytest suite (14 tests) and direct curl validation against external REACT_APP_BACKEND_URL. 13/14 pytest passed (92.8%). All requested curl endpoints behaved correctly except /api/settings/test-connection?api_key=<invalid> which incorrectly returns success=true. Settings deep-merge + disk persistence on /app/data/config.json verified; OpenSubtitles key reset to empty after test as required.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/settings/test-connection?api_key=<invalid>",
+        "issue": "Returns 200 {\"success\": true, \"message\": \"Conexão estabelecida com OpenSubtitles.\"} for an obviously invalid key (e.g. 'invalid_dummy_xyz'). Root cause: server.py line 481 calls https://api.opensubtitles.com/api/v1/infos/languages, which is a PUBLIC endpoint that returns 200 even with no/garbage Api-Key header (verified via curl directly). Result: the UI 'Test connection' button will always say success regardless of what the user types, defeating the purpose of the validation. Fix: switch to an authenticated endpoint that requires a valid Api-Key, e.g. https://api.opensubtitles.com/api/v1/user (returns 401 on invalid key) or send a HEAD/GET to /subtitles?query=test which requires auth. Then return success=False on any non-2xx.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_mediahunt_backend.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix /api/settings/test-connection so invalid OpenSubtitles keys return success=false. Use an authenticated endpoint (e.g. /api/v1/user) instead of the public /api/v1/infos/languages.",
+    "After the fix, re-run the existing pytest test_test_connection_invalid_key — no new test code needed."
+  ],
+  "critical_code_review_comments": [
+    "server.py:468-487 — test-connection probes a public OpenSubtitles endpoint, so the validation is effectively a no-op for any non-empty key. The existing test (test_test_connection_invalid_key) correctly catches this regression.",
+    "server.py:469 — `api_key: Optional[str] = None` accepts any string including whitespace; consider stripping and treating empty/whitespace as missing (currently `if not key` only catches empty/None, not whitespace).",
+    "Code quality: server.py is ~712 lines. Per the 700-line guideline, consider splitting providers (yts/nyaa/1337x/opensubtitles) and the settings layer into separate modules for maintainability.",
+    "Settings deep-merge & on-disk persistence at /app/data/config.json work as designed (verified manually + by tests)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "93%", "frontend": "skipped"},
+  "test_credentials": "No auth. OpenSubtitles key intentionally NOT seeded (per /app/memory/test_credentials.md). Reset to empty string at end of run.",
+  "seed_data_creation": "None. Test temporarily wrote opensubtitles='persistent_test_key_999' then reset to '' (verified on disk).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Pytest file at /app/backend/tests/test_mediahunt_backend.py is the single regression suite. Only failure is test_test_connection_invalid_key which depends on the OpenSubtitles validation logic in server.py:468-487. yts.mx DNS is blocked from this pod (movie searches return count=0 — handled gracefully). Nyaa is reachable. 1337x may be 403'd by Cloudflare. Config persistence file is /app/data/config.json. After fixing the test-connection bug, just rerun: pytest /app/backend/tests/test_mediahunt_backend.py -v",
+  "rca of the issue": "RCA — /api/settings/test-connection: the implementation calls GET https://api.opensubtitles.com/api/v1/infos/languages with the user's Api-Key header. That endpoint is public (returns 200 with no/invalid key — confirmed by direct curl: bad-key:200, no-key:200). Therefore the only way the current code returns success=false is if the network is down or OpenSubtitles is offline. To actually validate the key, hit an endpoint that requires authentication (e.g. /api/v1/user returns 401 on bad key) and report success only on 2xx. Reproduction: curl '$BASE/api/settings/test-connection?api_key=anything' → 200 success=true."
+}

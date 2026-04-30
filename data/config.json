@@ -1,0 +1,37 @@
+{
+  "api_keys": {
+    "opensubtitles": "",
+    "qbittorrent_url": "",
+    "qbittorrent_user": "",
+    "qbittorrent_pass": ""
+  },
+  "search_preferences": {
+    "default_language": "any",
+    "default_quality": "any",
+    "default_type": "any",
+    "max_results": 15
+  },
+  "sources": {
+    "yts": {
+      "enabled": true,
+      "priority": 1
+    },
+    "nyaa": {
+      "enabled": true,
+      "priority": 2
+    },
+    "1337x": {
+      "enabled": true,
+      "priority": 3
+    }
+  },
+  "subtitle_preferences": {
+    "default_language": "pt-br",
+    "preferred_format": "any"
+  },
+  "interface": {
+    "theme": "light",
+    "language": "pt"
+  },
+  "updated_at": "2026-04-28T16:08:52.536360+00:00"
+}
