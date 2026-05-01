@@ -31,6 +31,7 @@ const SearchPage = () => {
   const [searched, setSearched] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
   const [subPrefill, setSubPrefill] = useState(null);
+  const [selected, setSelected] = useState(null);
 
   useEffect(() => {
     if (loaded && settings) {
@@ -181,6 +182,16 @@ const SearchPage = () => {
         </div>
       )}
 
+      {selected && (
+        <div className="mb-5 rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+          <h3 className="font-semibold text-lg">{selected.title}</h3>
+          <p className="text-sm text-slate-400 mt-1">
+            Fonte: {selected.source} · Qualidade: {selected.quality || "N/A"} · Seeders: {selected.seeders ?? 0} · Leechers: {selected.leechers ?? 0}
+          </p>
+          {selected.size && <p className="text-sm text-slate-400">Tamanho: {selected.size}</p>}
+        </div>
+      )}
+
       {/* Results */}
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
@@ -209,7 +220,7 @@ const SearchPage = () => {
           data-testid="results-grid"
         >
           {results.map((r) => (
-            <TorrentCard key={r.id} result={r} onFindSubtitles={openSubtitles} />
+            <TorrentCard key={r.id} result={r} onFindSubtitles={openSubtitles} onSelect={setSelected} />
           ))}
         </div>
       )}

@@ -130,6 +130,21 @@ def dedupe_results(results: list[TorrentResult]) -> list[TorrentResult]:
         if key not in best or (r.seeders or 0) > (best[key].seeders or 0): best[key] = r
     return list(best.values())
 
+
+def build_magnet(infohash: str, name: str) -> str:
+    if not infohash:
+        return ""
+    trackers = [
+        "udp://tracker.opentrackr.org:1337/announce",
+        "udp://open.demonii.com:1337/announce",
+        "udp://tracker.openbittorrent.com:80",
+    ]
+    dn = urllib.parse.quote(name or "")
+    base = f"magnet:?xt=urn:btih:{infohash}&dn={dn}"
+    for tr in trackers:
+        base += f"&tr={urllib.parse.quote(tr)}"
+    return base
+
 async def search_yts(query: str, quality: str, limit: int) -> list[TorrentResult]:
     data = None
     yts_endpoints = [
@@ -155,7 +170,7 @@ async def search_yts(query: str, quality: str, limit: int) -> list[TorrentResult
     out=[]
     for m in ((data.get("data", {}) or {}).get("movies") or []):
         for t in m.get("torrents", []):
-            out.append(TorrentResult(id=f"yts-{m.get('id')}-{t.get('hash')}", title=m.get("title_long") or m.get("title", "Untitled"), year=m.get("year"), quality=("4k" if t.get("quality")=="2160p" else (t.get("quality") or "").lower()), size=t.get("size"), seeders=t.get("seeds",0), leechers=t.get("peers",0), source="YTS", torrent_url=t.get("url"), type="movie", language_hint="original_en"))
+            out.append(TorrentResult(id=f"yts-{m.get('id')}-{t.get('hash')}", title=m.get("title_long") or m.get("title", "Untitled"), year=m.get("year"), quality=("4k" if t.get("quality")=="2160p" else (t.get("quality") or "").lower()), size=t.get("size"), seeders=t.get("seeds",0), leechers=t.get("peers",0), source="YTS", magnet=build_magnet(t.get("hash", ""), m.get("title_long") or m.get("title", "")), torrent_url=t.get("url"), poster=m.get("medium_cover_image") or m.get("large_cover_image"), type="movie", language_hint="original_en"))
     return out
 
 async def search_nyaa(query: str, limit: int) -> list[TorrentResult]:
@@ -164,7 +179,7 @@ async def search_nyaa(query: str, limit: int) -> list[TorrentResult]:
             r = await cli.get("https://nyaa.si/", params={"page":"rss","q":query,"c":"0_0","f":"0"}); r.raise_for_status()
     except Exception as exc: raise RuntimeError(f"Nyaa indisponível: {exc}")
     feed=feedparser.parse(r.text); out=[]
-    for i,e in enumerate(feed.entries[:limit]): out.append(TorrentResult(id=f"nyaa-{e.get('id') or i}", title=e.get("title",""), quality=None,size=e.get("nyaa_size",""),seeders=int(e.get("nyaa_seeders",0) or 0),leechers=int(e.get("nyaa_leechers",0) or 0),source="Nyaa",torrent_url=e.get("link"),type="anime"))
+    for i,e in enumerate(feed.entries[:limit]): out.append(TorrentResult(id=f"nyaa-{e.get('id') or i}", title=e.get("title",""), quality=None,size=e.get("nyaa_size",""),seeders=int(e.get("nyaa_seeders",0) or 0),leechers=int(e.get("nyaa_leechers",0) or 0),source="Nyaa",magnet=e.get("link","") if str(e.get("link","")).startswith("magnet:") else None,torrent_url=e.get("link"),type="anime"))
     return out
 
 async def search_1337x(query: str, limit: int) -> list[TorrentResult]:
@@ -366,6 +381,29 @@ async def download_subtitle(file_id: int = Query(...)):
         media_type="application/x-subrip",
         headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
     )
+
+
+@api_router.get("/torrent/proxy")
+async def proxy_torrent(url: str = Query(...)):
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="URL inválida.")
+    try:
+        async with http_client(timeout=20.0) as cli:
+            r = await cli.get(url)
+        if r.status_code != 200:
+            raise HTTPException(status_code=r.status_code, detail="Falha no upstream.")
+        content_type = r.headers.get("content-type", "application/x-bittorrent")
+        filename = url.rsplit("/", 1)[-1].split("?")[0] or "file.torrent"
+        safe_name = re.sub(r"[^A-Za-z0-9_.\\-]", "_", filename)
+        return Response(
+            content=r.content,
+            media_type=content_type,
+            headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Erro ao baixar torrent: {exc}")
 
 app.include_router(api_router)
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=os.environ.get("CORS_ORIGINS","*").split(","), allow_methods=["*"], allow_headers=["*"])
