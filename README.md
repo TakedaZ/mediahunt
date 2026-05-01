@@ -1,73 +1,55 @@
 # MediaHunt
 
-**MediaHunt** é um buscador integrado de torrents e legendas com interface
-web moderna, pensado para rodar em servidores domésticos como
-**CasaOS**, **Unraid**, **TrueNAS**, ou em qualquer host com Docker.
+MediaHunt é um buscador self-hosted de torrents e legendas.
 
-- Buscas em **YTS**, **Nyaa.si** e **1337x** com filtros de tipo, idioma e qualidade
-- Busca de legendas via **OpenSubtitles REST API**
-- Configurações persistentes (`config.json`) em volume Docker
-- Interface dark estilo Plex/Sonarr, responsiva e em português ou inglês
+## Docker Compose / Dockge
 
-> Aviso: MediaHunt apenas indexa fontes públicas. O download e o uso de
-> conteúdo protegido por direitos autorais é de responsabilidade exclusiva
-> do usuário. Respeite as leis da sua região.
-
-## Stack
-
-- Backend: **FastAPI** (Python 3.11)
-- Frontend: **React 19** + Tailwind + shadcn/ui (build estático servido pelo backend)
-- Banco de dados: **MongoDB** (persistência das configurações)
-- Container único: backend + frontend estático na porta `5556`
-
-## Como obter a API key do OpenSubtitles (gratuita)
-
-1. Crie uma conta em <https://www.opensubtitles.com>.
-2. Acesse <https://www.opensubtitles.com/consumers> e clique em **"New Consumer"**.
-3. Preencha nome do app (ex.: `MediaHunt`) e descrição.
-4. Copie a chave (**API Key**) gerada.
-5. Cole a chave em `.env` (`OPENSUBTITLES_API_KEY=...`) **ou** em
-   `Configurações → API Keys` no app. Use *"Testar conexão"* para validar.
-
-## Deploy com Docker
-
-```bash
-git clone <seu-fork> mediahunt && cd mediahunt
-cp .env.example .env   # opcional, ajuste PORT/OPENSUBTITLES_API_KEY
-docker compose up -d --build
-# Acesse http://localhost:5556
+```yaml
+services:
+  mediahunt:
+    build: .
+    ports:
+      - "${PORT:-5556}:5556"
+    environment:
+      PORT: "${PORT:-5556}"
+      MEDIAHUNT_DATA_DIR: "/app/data"
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    volumes:
+      - mediahunt_data:/app/data
 ```
 
-Configurações persistem no volume `mediahunt_data` (montado em `/app/data`).
+Suba com:
 
-### Variáveis de ambiente
+```bash
+docker compose up -d --build
+```
 
-| Variável                | Padrão       | Descrição                                                |
-| ----------------------- | ------------ | -------------------------------------------------------- |
-| `PORT`                  | `5556`       | Porta exposta pelo container                             |
-| `OPENSUBTITLES_API_KEY` | *(vazio)*    | Chave OpenSubtitles                                      |
-| `MONGO_URL`             | (auto)       | Definido pelo compose                                    |
-| `DB_NAME`               | `mediahunt`  | Nome do banco                                            |
-| `CORS_ORIGINS`          | `*`          | Origens permitidas                                       |
+Acesse em `http://IP_DO_SERVIDOR:5556`.
 
-## Endpoints da API
+## OpenSubtitles
 
-| Método | Path                            | Descrição                                                                      |
-| ------ | ------------------------------- | ------------------------------------------------------------------------------ |
-| GET    | `/api/search/torrents`          | params: `query`, `type`, `language`, `quality`, `max_results`                  |
-| GET    | `/api/search/subtitles`         | params: `query`, `language`                                                    |
-| GET    | `/api/subtitles/download`       | param: `file_id`                                                               |
-| GET    | `/api/torrent/proxy`            | param: `url` (proxy para `.torrent`)                                           |
-| GET    | `/api/settings`                 | Retorna configurações                                                          |
-| POST   | `/api/settings`                 | Atualiza configurações                                                         |
-| GET    | `/api/settings/test-connection` | Testa a API key do OpenSubtitles                                               |
+Use `OPENSUBTITLES_API_KEY` no `.env` ou em Configurações. Sem API key, o app mostra aviso amigável.
 
-## Roadmap (futuro)
+## Fontes RSS/Torznab customizadas
 
-- Integração ativa com qBittorrent
-- Histórico de buscas
-- Integração com Jellyfin / Plex
+Em **Configurações → Fontes customizadas** você pode cadastrar:
+- Nome
+- Tipo (RSS genérico / Torznab)
+- URL base
+- Ativo/desativo
+- Categorias (Filme/Série/Anime)
 
-## Licença
+Você pode adicionar fontes RSS ou Torznab compatíveis com Prowlarr/Jackett. Para encontrar fontes, procure pelo nome do indexador + RSS ou Torznab. Algumas fontes exigem API key ou login. Use apenas fontes que você tenha permissão para acessar.
 
-MIT — uso por sua conta e risco.
+## Troubleshooting
+
+- Erro DNS no Docker (YTS/Nyaa): configure DNS públicos no compose (`1.1.1.1`, `8.8.8.8`).
+- 1337x 403: o app mostra aviso amigável e continua nas outras fontes.
+
+Limpar imagens antigas:
+
+```bash
+docker image prune -a -f
+```

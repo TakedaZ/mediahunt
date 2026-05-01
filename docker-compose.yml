@@ -5,6 +5,9 @@ services:
     restart: unless-stopped
     volumes:
       - mediahunt_mongo:/data/db
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     networks:
       - mediahunt
 
@@ -15,7 +18,7 @@ services:
     ports:
       - "${PORT:-5556}:5556"
     environment:
-      PORT: "5556"
+      PORT: "${PORT:-5556}"
       MONGO_URL: "mongodb://mongo:27017"
       DB_NAME: "${DB_NAME:-mediahunt}"
       CORS_ORIGINS: "${CORS_ORIGINS:-*}"
@@ -25,6 +28,9 @@ services:
       - mediahunt_data:/app/data
     depends_on:
       - mongo
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     networks:
       - mediahunt
 
