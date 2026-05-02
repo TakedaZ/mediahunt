@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { ArrowDown, ArrowUp, Magnet, Download, MessageSquare, Film } from "lucide-react";
 import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
 import { toast } from "sonner";
 import { useApp, API } from "../context/AppContext";
 import { t } from "../lib/i18n";
@@ -15,7 +14,7 @@ const sourceColor = {
   "1337x": "bg-rose-500/15 text-rose-300 border-rose-500/30",
 };
 
-const TorrentCard = ({ result, onFindSubtitles }) => {
+const TorrentCard = ({ result, onFindSubtitles, onSelect, onAction }) => {
   const { lang } = useApp();
   const [imgError, setImgError] = useState(false);
 
@@ -27,6 +26,7 @@ const TorrentCard = ({ result, onFindSubtitles }) => {
     try {
       await navigator.clipboard.writeText(result.magnet);
       toast.success(t(lang, "card.magnetCopied"));
+      onAction?.(`Magnet copiado: ${result.title}`);
     } catch {
       const ta = document.createElement("textarea");
       ta.value = result.magnet;
@@ -35,6 +35,7 @@ const TorrentCard = ({ result, onFindSubtitles }) => {
       document.execCommand("copy");
       document.body.removeChild(ta);
       toast.success(t(lang, "card.magnetCopied"));
+      onAction?.(`Magnet copiado: ${result.title}`);
     }
   };
 
@@ -47,10 +48,12 @@ const TorrentCard = ({ result, onFindSubtitles }) => {
       ? `${API}/torrent/proxy?url=${encodeURIComponent(result.torrent_url)}`
       : result.torrent_url;
     window.open(url, "_blank", "noopener");
+    onAction?.(`Download iniciado: ${result.title}`);
   };
 
   return (
     <div
+      onClick={() => onSelect?.(result)}
       className="group relative rounded-xl overflow-hidden border border-slate-800 bg-slate-900/60 hover:border-amber-500/40 transition-all duration-300 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] hover:shadow-[0_8px_30px_-4px_rgba(245,158,11,0.25)]"
       data-testid={`torrent-card-${result.id}`}
     >
@@ -88,7 +91,7 @@ const TorrentCard = ({ result, onFindSubtitles }) => {
         <div className="absolute inset-0 card-poster-fade pointer-events-none" />
 
         <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
-          <h3 className="font-display font-semibold text-white text-sm leading-tight line-clamp-2">
+          <h3 className="font-display font-semibold text-white text-sm leading-tight line-clamp-2" title={result.title}>
             {result.title}
             {result.year ? <span className="text-slate-400 font-normal"> · {result.year}</span> : null}
           </h3>

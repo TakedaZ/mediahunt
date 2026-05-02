@@ -389,6 +389,73 @@ const SettingsPage = () => {
             </Select>
           </div>
         </Section>
+
+        <Section icon={Server} title="Fontes customizadas" testid="section-custom-sources">
+          <p className="text-xs text-slate-500">
+            Você pode adicionar fontes RSS ou Torznab compatíveis com Prowlarr/Jackett. Para encontrar fontes, procure pelo nome do indexador + RSS ou Torznab. Algumas fontes exigem API key ou login. Use apenas fontes que você tenha permissão para acessar.
+          </p>
+          {(draft.custom_sources || []).map((src, idx) => (
+            <div key={`custom-${idx}`} className="rounded-lg border border-slate-800 p-3 space-y-2">
+              <Input
+                value={src.name || ""}
+                onChange={(e) => {
+                  const next = [...(draft.custom_sources || [])];
+                  next[idx] = { ...next[idx], name: e.target.value };
+                  update("custom_sources", next);
+                }}
+                placeholder="Nome da fonte"
+                className="bg-slate-800/60 border-slate-700"
+              />
+              <Select
+                value={src.source_type || "rss"}
+                onValueChange={(v) => {
+                  const next = [...(draft.custom_sources || [])];
+                  next[idx] = { ...next[idx], source_type: v };
+                  update("custom_sources", next);
+                }}
+              >
+                <SelectTrigger className="bg-slate-800/60 border-slate-700"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rss">RSS genérico</SelectItem>
+                  <SelectItem value="torznab">Torznab</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                value={src.base_url || ""}
+                onChange={(e) => {
+                  const next = [...(draft.custom_sources || [])];
+                  next[idx] = { ...next[idx], base_url: e.target.value };
+                  update("custom_sources", next);
+                }}
+                placeholder="URL base"
+                className="bg-slate-800/60 border-slate-700"
+              />
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Ativo</Label>
+                <Switch
+                  checked={!!src.enabled}
+                  onCheckedChange={(v) => {
+                    const next = [...(draft.custom_sources || [])];
+                    next[idx] = { ...next[idx], enabled: v };
+                    update("custom_sources", next);
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+          <Button
+            variant="outline"
+            className="border-slate-700 hover:bg-slate-800"
+            onClick={() =>
+              update("custom_sources", [
+                ...(draft.custom_sources || []),
+                { name: "", source_type: "rss", base_url: "", enabled: true, categories: ["movie", "series", "anime"] },
+              ])
+            }
+          >
+            Adicionar fonte
+          </Button>
+        </Section>
       </div>
 
       <div className="mt-8 flex justify-end sticky bottom-20 z-20">
