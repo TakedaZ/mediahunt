@@ -27,9 +27,13 @@ const SearchPage = () => {
   const [maxResults, setMaxResults] = useState(20);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
+  const [warnings, setWarnings] = useState([]);
   const [searched, setSearched] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
   const [subPrefill, setSubPrefill] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [meta, setMeta] = useState(null);
+  const [logs, setLogs] = useState([]);
 
   useEffect(() => {
     if (loaded && settings) {
@@ -49,9 +53,11 @@ const SearchPage = () => {
         params: { query, type, language, quality, max_results: maxResults },
       });
       setResults(r.data.results || []);
+      setWarnings(r.data.warnings || []);
     } catch (e) {
       toast.error(e?.response?.data?.detail || e.message);
       setResults([]);
+      setWarnings([]);
     } finally {
       setLoading(false);
     }
@@ -61,6 +67,28 @@ const SearchPage = () => {
     setSubPrefill(result);
     setSubOpen(true);
   };
+
+  useEffect(() => {
+    const fetchMeta = async () => {
+      if (!selected?.title) return setMeta(null);
+      try {
+        const clean = selected.title.replace(/\[.*?\]|\(.*?\)|\d{3,4}p|x264|x265|HEVC|WEB-DL|BluRay/gi, "").trim();
+        const r = await axios.get("https://api.jikan.moe/v4/anime", { params: { q: clean, limit: 1 } });
+        const top = r?.data?.data?.[0];
+        if (top) {
+          setMeta({
+            image: top.images?.jpg?.large_image_url || top.images?.jpg?.image_url,
+            synopsis: top.synopsis,
+            score: top.score,
+            episodes: top.episodes,
+          });
+        } else setMeta(null);
+      } catch {
+        setMeta(null);
+      }
+    };
+    fetchMeta();
+  }, [selected]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-24">
@@ -169,6 +197,39 @@ const SearchPage = () => {
         </div>
       </div>
 
+      {/* Warnings */}
+      {warnings.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {warnings.map((w, i) => (
+            <div key={i} className="rounded-lg border border-amber-600/40 bg-amber-500/10 px-3 py-2 text-amber-200 text-sm">{w}</div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] gap-4">
+      <aside className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 h-fit">
+        <h3 className="font-semibold mb-2">Painel</h3>
+        {selected ? (
+          <>
+            {meta?.image && <img src={meta.image} alt={selected.title} className="rounded-lg mb-3 w-full object-cover" />}
+            <p className="text-sm font-medium">{selected.title}</p>
+            <p className="text-xs text-slate-400 mt-2">{meta?.synopsis || "Sem sinopse disponível."}</p>
+            <p className="text-xs text-slate-400 mt-2">Qualidade: {selected.quality || "N/A"} · Seeders: {selected.seeders ?? 0}</p>
+          </>
+        ) : <p className="text-xs text-slate-400">Selecione um resultado para ver detalhes.</p>}
+      </aside>
+
+      <div>
+      {selected && (
+        <div className="mb-5 rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+          <h3 className="font-semibold text-lg">{selected.title}</h3>
+          <p className="text-sm text-slate-400 mt-1">
+            Fonte: {selected.source} · Qualidade: {selected.quality || "N/A"} · Seeders: {selected.seeders ?? 0} · Leechers: {selected.leechers ?? 0}
+          </p>
+          {selected.size && <p className="text-sm text-slate-400">Tamanho: {selected.size}</p>}
+        </div>
+      )}
+
       {/* Results */}
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
@@ -197,10 +258,19 @@ const SearchPage = () => {
           data-testid="results-grid"
         >
           {results.map((r) => (
-            <TorrentCard key={r.id} result={r} onFindSubtitles={openSubtitles} />
+            <TorrentCard key={r.id} result={r} onFindSubtitles={openSubtitles} onSelect={setSelected} onAction={(msg)=>setLogs((prev)=>[msg, ...prev].slice(0,20))} />
           ))}
         </div>
       )}
+      </div>
+      <aside className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 h-fit">
+        <h3 className="font-semibold mb-2">Logs</h3>
+        <ul className="space-y-1 text-xs text-slate-300 max-h-[420px] overflow-auto">
+          {warnings.map((w, i) => <li key={`w-${i}`} className="text-amber-300">⚠ {w}</li>)}
+          {logs.map((l, i) => <li key={`l-${i}`}>• {l}</li>)}
+        </ul>
+      </aside>
+      </div>
 
       <SubtitleDialog open={subOpen} onOpenChange={setSubOpen} prefill={subPrefill} />
     </div>
